@@ -6,5 +6,5 @@ git push origin master:                               Commit zum "Master"-Branch
 
 Link zu Beschreibungen:
 
-https://help.github.com/articles/create-a-repo:       Repository erstellen und Upload
-https://help.github.com/articles/fork-a-repo:         neuesten Stand beziehen & neues Repository downloaden
+https://help.github.com/articles/create-a-repo        Repository erstellen und Upload
+https://help.github.com/articles/fork-a-repo          neuesten Stand beziehen & neues Repository downloaden
