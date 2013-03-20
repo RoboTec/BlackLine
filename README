@@ -1,0 +1,5 @@
+Wichtigste Git-Befehle:
+
+git add FILENAME:                 Datei zum Commit hinzufügen
+git commit -m 'MESSAGE':          Commit mit Nachricht veröffentlichen
+git push origin master:           Commit zum "Master"-Branch senden
