@@ -1,0 +1,243 @@
+/* Schwarze Linie Main */
+
+#include "NXCDefs.h"
+#include "HTSMUX-driver.h"
+
+long intzeroval;
+bool flag1;
+bool flag2;
+bool DirectionRight;
+int time;
+long sensorTime;
+byte count;
+byte SpeedLeft;
+byte SpeedRight;
+#define Speednorm 100
+#define Schwarzwert 50
+#define ramp 50
+#define stime 2000
+
+int backtime = 800;
+int turntime = 500;
+
+int evadetime = 1500;
+int fortime = 3000;
+
+void StartTiming()
+{
+     intzeroval = CurrentTick();
+}
+void StartGreenLine()
+{
+     sensorTime = CurrentTick();
+}
+
+long ReturnTime()
+{
+     return (CurrentTick() - intzeroval);
+}
+
+long ReturnSensorTime()
+{
+     return (CurrentTick() - sensorTime);
+}
+
+void evadeLeft()
+{
+      OnFwd(OUT_B, 100);
+      OnRev(OUT_C, 100);
+}
+void evadeRight()
+{
+      OnRev(OUT_B, 100);
+      OnFwd(OUT_C, 100);
+}
+
+void asyncStartAvoidCollision()
+{
+      Off(OUT_BC);
+      OnRev(OUT_BC, 80);
+      Wait(backtime);
+      Off(OUT_BC);
+      evadeLeft();
+      Wait(turntime);
+      Off(OUT_BC);
+      OnFwd(OUT_BC, 80);
+      Wait(evadetime);
+      evadeRight();
+      Wait(turntime);
+      OnFwd(OUT_BC, 80);
+      Wait(fortime);
+      Off(OUT_BC);
+      evadeRight();
+      Wait(turntime);
+      Off(OUT_BC);
+      OnFwd(OUT_BC, 80);
+      ClearScreen();
+      while((SENSOR_2 > Schwarzwert) &&  (SENSOR_3 > Schwarzwert))
+      {
+           OnFwd(OUT_BC, 80);
+           Wait(1);
+      }
+      Wait(200);
+      evadeLeft();
+      Wait(turntime);
+      Off(OUT_BC);
+}
+
+void TurnLeft()
+{
+     SpeedLeft = 80;
+     SpeedRight = -100;
+     DirectionRight = false;
+     StartTiming();
+}
+
+void TurnRight()
+{
+     SpeedLeft = -100;
+     SpeedRight = 80;
+     DirectionRight = true;
+     StartTiming();
+}
+
+void InitSensors()
+{
+     SetSensorLight(IN_3);
+     SetSensorLight(IN_2);
+     SetSensorLowspeed(IN_1);
+     SetSensorColorFull(IN_4);
+     //SetSensor(S4, SENSOR_TOUCH);
+     //Sensor Testen...
+     if (!HTSMUXscanPorts(S1))
+     {
+        // Scan failed, handle the error
+        TextOut(0, LCD_LINE1, "Scan failed!");
+        Wait(1000);
+     }
+}
+
+bool isAbleToCheck()
+{
+     TextOut(0, LCD_LINE3, "                ");
+     NumOut(0, LCD_LINE3, count);
+     if(count == 0)
+     {
+          return true;
+     }
+     return false;
+}
+
+void HandleCounting()
+{
+     ++count;
+     if(count >= 100)
+     {
+         count = 0;
+     }
+
+}
+
+bool ReadAccel(int &x, int &y, int &z)
+{
+     if(isAbleToCheck())
+     {
+          smuxReadSensorHTAccel(msensor_S1_2, x, y, z);
+          return true;
+     }
+     return false;
+}
+
+bool ReadFrontTouch()
+{
+     if(isAbleToCheck())
+     {
+          return smuxReadSensorLegoTouch(msensor_S1_4);
+     }
+     return false;
+}
+
+bool ReadBackTouch()
+{
+     if(isAbleToCheck())
+     {
+          return smuxReadSensorLegoTouch(msensor_S1_3);
+     }
+     return false;
+}
+
+byte ReadUltrasonic()
+{
+    if(isAbleToCheck())
+    {
+         return smuxSensorLegoUS(msensor_S1_1);
+    }
+}
+
+void CheckForLongSync()
+{
+     if(ReadFrontTouch())
+     {
+         asyncStartAvoidCollision();
+     }
+     int x, y, z;
+     if(ReadAccel(x, y, z))
+     {
+         if(x > ramp)
+         {
+              //Fuigas
+         }
+     }
+     byte color = SENSOR_4;
+     switch(color)
+     {
+         case 3:
+              StartGreenLine();
+         break;
+         default:
+         break;
+              
+     }
+}    //TODO: Add Code for Greenline
+
+task main()
+{
+     InitSensors();
+     StartTiming();
+     while(true)
+     {
+          HandleCounting(); //Ticks the smux delayer
+          CheckForLongSync();
+          SpeedLeft = Speednorm;
+          SpeedRight = Speednorm;
+          time = ReturnTime();
+          ClearScreen();
+          NumOut(0,LCD_LINE1,ReturnSensorTime());
+          if((SENSOR_3 < Schwarzwert) && (ReturnSensorTime() > stime))
+          {
+              TurnLeft();
+          }
+          if(SENSOR_2 < Schwarzwert)
+          {
+              TurnRight();
+          }
+          if((time > 1000) && (ReturnSensorTime() > stime))
+          {
+              if(DirectionRight == true)
+              {
+                  SpeedLeft = 50;
+                  SpeedRight = 20;
+              }
+              else
+              {
+                  SpeedLeft = 20;
+                  SpeedRight = 50;
+              }
+          }
+          OnFwd(OUT_B, SpeedLeft);
+          OnFwd(OUT_C, SpeedRight);
+          Wait(20);
+          Off(OUT_BC);
+     }
+     
+}
