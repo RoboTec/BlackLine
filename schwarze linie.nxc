@@ -294,7 +294,6 @@ task main()
                       Wait(10);
                       Off(OUT_BC);
                       //Der Roboter fährt gerade länger nach links, fahre zurück auf die Strecke(bis Lichtsensor)
-                      
                  }
 
              }

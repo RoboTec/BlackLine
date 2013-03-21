@@ -1,0 +1,112 @@
+/* Schwarze Linie Main */
+
+#include "NXCDefs.h"
+#include "HTSMUX-driver.h"
+
+long intzeroval;
+bool flag1;
+bool flag2;
+bool DirectionRight;
+int time;
+int sensorTime;
+byte count;
+#define Geschw 80
+#define Schwarzwert 50
+#define ramp 50
+
+void StartTiming()
+{
+     intzeroval = CurrentTick();
+     sensorTime = CurrentTick();
+}
+void StartGreenLine()
+{
+     sensorTime = CurrentTick();
+}
+
+long ReturnTime()
+{
+     return (CurrentTick() - intzeroval);
+}
+
+long ReturnSensorTime()
+{
+     return (CurrentTick() - sensorTime);
+}
+
+void evadeLeft()
+{
+      OnFwd(OUT_B, 100);
+      OnRev(OUT_C, 100);
+}
+void evadeRight()
+{
+      OnRev(OUT_B, 100);
+      OnFwd(OUT_C, 100);
+}
+
+void asyncStartAvoidCollision()
+{
+      Off(OUT_BC);
+      OnRev(OUT_BC, 80);
+      Wait(backtime);
+      Off(OUT_BC);
+      evadeLeft();
+      Wait(turntime);
+      Off(OUT_BC);
+      OnFwd(OUT_BC, 80);
+      Wait(evadetime);
+      evadeRight();
+      Wait(turntime);
+      OnFwd(OUT_BC, 80);
+      Wait(fortime);
+      Off(OUT_BC);
+      evadeRight();
+      Wait(turntime);
+      Off(OUT_BC);
+      OnFwd(OUT_BC, 80);
+      ClearScreen();
+      while((SENSOR_2 > Schwarzwert) &&  (SENSOR_3 > Schwarzwert))
+      {
+           OnFwd(OUT_BC, 80);
+           Wait(1);
+      }
+      Wait(200);
+      evadeLeft();
+      Wait(turntime);
+      Off(OUT_BC);
+}
+
+void TurnLeft()
+{
+     OnFwd(OUT_B, 80);
+     OnRev(OUT_C, 100);
+     Wait(6);
+     Off(OUT_BC);
+     StartTiming();
+}
+
+void TurnRight()
+{
+     OnFwd(OUT_C, 80);
+     OnRev(OUT_B, 100);
+     Wait(6);
+     Off(OUT_BC);
+     StartTiming();
+}
+
+void InitSensors()
+{
+     SetSensorLight(IN_3);
+     SetSensorLight(IN_2);
+     SetSensorLowspeed(IN_1);
+     SetSensorColorFull(IN_4);
+     //SetSensor(S4, SENSOR_TOUCH);
+     //Sensor Testen...
+     if (!HTSMUXscanPorts(S1))
+     {
+        // Scan failed, handle the error
+        TextOut(0, LCD_LINE1, "Scan failed!");
+        Wait(1000);
+     }
+}
