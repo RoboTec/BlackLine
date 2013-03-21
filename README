@@ -1,5 +1,8 @@
 Wichtigste Git-Befehle:
 
+git fetch upstream:                                   Änderungen vergleichen, ohne überschreiben
+git merge upstream/master:                            Änderungen herunterladen und einfügen
+
 git add FILENAME:                                     Datei zum Commit hinzufügen
 git commit -m 'MESSAGE':                              Commit mit Nachricht veröffentlichen
 git push origin master:                               Commit zum "Master"-Branch senden
