@@ -12,8 +12,10 @@ long sensorTime;
 byte count;
 byte SpeedLeft;
 byte SpeedRight;
-#define Speednorm 100
-#define Schwarzwert 50
+#define Speednorm 75
+#define Schwarzwert 53
+int GreenAttempts;
+
 #define ramp 50
 #define stime 2000
 
@@ -87,7 +89,7 @@ void asyncStartAvoidCollision()
 
 void TurnLeft()
 {
-     SpeedLeft = 80;
+     SpeedLeft = 100;
      SpeedRight = -100;
      DirectionRight = false;
      StartTiming();
@@ -96,7 +98,7 @@ void TurnLeft()
 void TurnRight()
 {
      SpeedLeft = -100;
-     SpeedRight = 80;
+     SpeedRight = 100;
      DirectionRight = true;
      StartTiming();
 }
@@ -192,9 +194,17 @@ void CheckForLongSync()
      switch(color)
      {
          case 3:
-              StartGreenLine();
+              PlayTone(5000, 20);
+
+              GreenAttempts += 1;
+              if(GreenAttempts > 5)
+              {
+                  StartGreenLine();
+              }
+
          break;
          default:
+              GreenAttempts = 0;
          break;
               
      }
@@ -204,8 +214,10 @@ task main()
 {
      InitSensors();
      StartTiming();
+     GreenAttempts = 0;
      while(true)
      {
+
           HandleCounting(); //Ticks the smux delayer
           CheckForLongSync();
           SpeedLeft = Speednorm;
@@ -213,14 +225,19 @@ task main()
           time = ReturnTime();
           ClearScreen();
           NumOut(0,LCD_LINE1,ReturnSensorTime());
-          if((SENSOR_3 < Schwarzwert) && (ReturnSensorTime() > stime))
-          {
-              TurnLeft();
-          }
+          NumOut(0, LCD_LINE2, SENSOR_2);
+          NumOut(0, LCD_LINE3, SENSOR_3);
+          NumOut(0, LCD_LINE4, GreenAttempts);
+          NumOut(0, LCD_LINE5, SENSOR_4);
           if(SENSOR_2 < Schwarzwert)
           {
               TurnRight();
           }
+          if((SENSOR_3 < Schwarzwert) && (ReturnSensorTime() > stime))
+          {
+              TurnLeft();
+          }
+
           if((time > 1000) && (ReturnSensorTime() > stime))
           {
               if(DirectionRight == true)
