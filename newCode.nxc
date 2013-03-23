@@ -15,13 +15,16 @@ byte SpeedRight;
 #define Speednorm 75
 #define Schwarzwert 53
 int GreenAttempts;
+bool downFloor;
+int Ultrasonicvalue;
+
 
 #define ramp 50
 #define stime 2000
 
 int backtime = 800;
 int turntime = 500;
-
+int nigger = 0;
 int evadetime = 1500;
 int fortime = 3000;
 
@@ -61,20 +64,27 @@ void asyncStartAvoidCollision()
       OnRev(OUT_BC, 80);
       Wait(backtime);
       Off(OUT_BC);
+      
       evadeLeft();
       Wait(turntime);
       Off(OUT_BC);
+      
       OnFwd(OUT_BC, 80);
       Wait(evadetime);
+      
       evadeRight();
       Wait(turntime);
+      
       OnFwd(OUT_BC, 80);
       Wait(fortime);
       Off(OUT_BC);
+      
       evadeRight();
       Wait(turntime);
       Off(OUT_BC);
+      
       OnFwd(OUT_BC, 80);
+      Wait(evadetime-1000);
       ClearScreen();
       while((SENSOR_2 > Schwarzwert) &&  (SENSOR_3 > Schwarzwert))
       {
@@ -117,6 +127,7 @@ void InitSensors()
         TextOut(0, LCD_LINE1, "Scan failed!");
         Wait(1000);
      }
+     smuxSetSensorLegoLight(msensor_S1_3, true);
 }
 
 bool isAbleToCheck()
@@ -133,7 +144,7 @@ bool isAbleToCheck()
 void HandleCounting()
 {
      ++count;
-     if(count >= 100)
+     if(count >= 50)
      {
          count = 0;
      }
@@ -159,21 +170,34 @@ bool ReadFrontTouch()
      return false;
 }
 
-bool ReadBackTouch()
+int ReadBackLight()
 {
      if(isAbleToCheck())
      {
-          return smuxReadSensorLegoTouch(msensor_S1_3);
+          return smuxSensorLegoLightNorm(msensor_S1_3);
      }
-     return false;
+     return 0;
 }
 
-byte ReadUltrasonic()
+void ReadUltrasonic()
 {
     if(isAbleToCheck())
     {
-         return smuxSensorLegoUS(msensor_S1_1);
+        int temp = smuxSensorLegoUS(msensor_S1_1);
+        if(temp != 255)
+        {
+            Ultrasonicvalue = smuxSensorLegoUS(msensor_S1_1);
+        }
+        else
+        {
+            Ultrasonicvalue = 0;
+        }
     }
+    else
+    {
+         Ultrasonicvalue = 0;
+    }
+
 }
 
 void CheckForLongSync()
@@ -208,6 +232,11 @@ void CheckForLongSync()
          break;
               
      }
+     if((SENSOR_2 > 75) || (SENSOR_3 > 75))
+     {
+         downFloor = false;
+     }
+
 }    //TODO: Add Code for Greenline
 
 task main()
@@ -215,7 +244,9 @@ task main()
      InitSensors();
      StartTiming();
      GreenAttempts = 0;
-     while(true)
+     Ultrasonicvalue = 0;
+     downFloor = false;
+     while(downFloor)
      {
 
           HandleCounting(); //Ticks the smux delayer
@@ -229,6 +260,17 @@ task main()
           NumOut(0, LCD_LINE3, SENSOR_3);
           NumOut(0, LCD_LINE4, GreenAttempts);
           NumOut(0, LCD_LINE5, SENSOR_4);
+          ReadUltrasonic();
+          if(Ultrasonicvalue > 0)
+          {
+          NumOut(0, LCD_LINE6, Ultrasonicvalue);
+          }
+          
+          if(ReadFrontTouch())
+          {
+              TextOut(0, LCD_LINE6, "Touch");
+          }
+          
           if(SENSOR_2 < Schwarzwert)
           {
               TurnRight();
@@ -243,11 +285,11 @@ task main()
               if(DirectionRight == true)
               {
                   SpeedLeft = 50;
-                  SpeedRight = 20;
+                  SpeedRight = 30;
               }
               else
               {
-                  SpeedLeft = 20;
+                  SpeedLeft = 30;
                   SpeedRight = 50;
               }
           }
@@ -255,6 +297,54 @@ task main()
           OnFwd(OUT_C, SpeedRight);
           Wait(20);
           Off(OUT_BC);
+     }
+     //UpperFloor
+     ClearScreen();
+     while(true)
+     {
+         NumOut(0, LCD_LINE1, ReadBackLight());
+         OnFwd(OUT_BC, -30);
+         ReadUltrasonic();
+         if(Ultrasonicvalue != 0)
+         {
+              ClearScreen();
+              NumOut(0,LCD_LINE2, Ultrasonicvalue);
+         }
+         if(((Ultrasonicvalue <= 35) && (Ultrasonicvalue != 0)))
+         {
+          Off(OUT_ABC);
+          OnFwd(OUT_BC,50);
+          Wait(3500);
+          if(Ultrasonicvalue <= 10)
+          {
+             OnFwd(OUT_C,50);
+             OnRev(OUT_B,50);
+             Wait(300);
+             Off(OUT_BC);
+          }
+          if((Ultrasonicvalue > 10) && (Ultrasonicvalue <= 20))
+          {
+             OnFwd(OUT_C,50);
+             OnRev(OUT_B,50);
+             Wait(500);
+             Off(OUT_BC);
+          }
+          if(Ultrasonicvalue > 20)
+          {
+             OnFwd(OUT_C,50);
+             OnRev(OUT_B,50);
+             Wait(700);
+             Off(OUT_BC);
+          }
+         }
+         if(ReadBackLight() > 40)
+         {
+             Wait(1000);
+             Off(OUT_BC);
+             OnFwd(OUT_A, -100);
+             Wait(1000);
+             Off(OUT_A);
+         }
      }
      
 }
