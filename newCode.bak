@@ -1,0 +1,307 @@
+/* Schwarze Linie Main */ //22.03.2013 // Philipp Auer
+
+#include "NXCDefs.h"
+#include "HTSMUX-driver.h"
+
+long intzeroval;
+bool flag1;
+bool flag2;
+bool DirectionRight;
+int time;
+long sensorTime;
+byte count;
+byte SpeedLeft;
+byte SpeedRight;
+#define Speednorm 75
+#define Schwarzwert 53
+int GreenAttempts;
+bool downFloor;
+
+
+
+#define ramp 50
+#define stime 2000
+
+int backtime = 800;
+int turntime = 500;
+int nigger = 0;
+int evadetime = 1500;
+int fortime = 3000;
+
+void StartTiming()
+{
+     intzeroval = CurrentTick();
+}
+void StartGreenLine()
+{
+     sensorTime = CurrentTick();
+}
+
+long ReturnTime()
+{
+     return (CurrentTick() - intzeroval);
+}
+
+long ReturnSensorTime()
+{
+     return (CurrentTick() - sensorTime);
+}
+
+void evadeLeft()
+{
+      OnFwd(OUT_B, 100);
+      OnRev(OUT_C, 100);
+}
+void evadeRight()
+{
+      OnRev(OUT_B, 100);
+      OnFwd(OUT_C, 100);
+}
+
+void asyncStartAvoidCollision()
+{
+      Off(OUT_BC);
+      OnRev(OUT_BC, 80);
+      Wait(backtime);
+      Off(OUT_BC);
+      
+      evadeLeft();
+      Wait(turntime);
+      Off(OUT_BC);
+      
+      OnFwd(OUT_BC, 80);
+      Wait(evadetime);
+      
+      evadeRight();
+      Wait(turntime);
+      
+      OnFwd(OUT_BC, 80);
+      Wait(fortime);
+      Off(OUT_BC);
+      
+      evadeRight();
+      Wait(turntime);
+      Off(OUT_BC);
+      
+      OnFwd(OUT_BC, 80);
+      Wait(evadetime-1000);
+      ClearScreen();
+      while((SENSOR_2 > Schwarzwert) &&  (SENSOR_3 > Schwarzwert))
+      {
+           OnFwd(OUT_BC, 80);
+           Wait(1);
+      }
+      Wait(200);
+      evadeLeft();
+      Wait(turntime);
+      Off(OUT_BC);
+}
+
+void TurnLeft()
+{
+     SpeedLeft = 100;
+     SpeedRight = -100;
+     DirectionRight = false;
+     StartTiming();
+}
+
+void TurnRight()
+{
+     SpeedLeft = -100;
+     SpeedRight = 100;
+     DirectionRight = true;
+     StartTiming();
+}
+
+void InitSensors()
+{
+     SetSensorLight(IN_3);
+     SetSensorLight(IN_2);
+     SetSensorLowspeed(IN_1);
+     SetSensorColorFull(IN_4);
+     //SetSensor(S4, SENSOR_TOUCH);
+     //Sensor Testen...
+     if (!HTSMUXscanPorts(S1))
+     {
+        // Scan failed, handle the error
+        TextOut(0, LCD_LINE1, "Scan failed!");
+        Wait(1000);
+     }
+     smuxSetSensorLegoLight(msensor_S1_3, true);
+}
+
+bool isAbleToCheck()
+{
+     TextOut(0, LCD_LINE3, "                ");
+     NumOut(0, LCD_LINE3, count);
+     if(count == 0)
+     {
+          return true;
+     }
+     return false;
+}
+
+void HandleCounting()
+{
+     ++count;
+     if(count >= 50)
+     {
+         count = 0;
+     }
+
+}
+
+bool ReadAccel(int &x, int &y, int &z)
+{
+     if(isAbleToCheck())
+     {
+          smuxReadSensorHTAccel(msensor_S1_2, x, y, z);
+          return true;
+     }
+     return false;
+}
+
+bool ReadFrontTouch()
+{
+     if(isAbleToCheck())
+     {
+          return smuxReadSensorLegoTouch(msensor_S1_4);
+     }
+     return false;
+}
+
+int ReadBackLight()
+{
+     if(isAbleToCheck())
+     {
+          return smuxSensorLegoLightNorm(msensor_S1_3);
+     }
+     return 0;
+}
+
+byte ReadUltrasonic()
+{
+    if(isAbleToCheck())
+    {
+         return smuxSensorLegoUS(msensor_S1_1);
+    }
+    return 0;
+}
+
+void CheckForLongSync()
+{
+     if(ReadFrontTouch())
+     {
+         asyncStartAvoidCollision();
+     }
+     int x, y, z;
+     if(ReadAccel(x, y, z))
+     {
+         if(x > ramp)
+         {
+              //Fuigas
+         }
+     }
+     byte color = SENSOR_4;
+     switch(color)
+     {
+         case 3:
+              PlayTone(5000, 20);
+
+              GreenAttempts += 1;
+              if(GreenAttempts > 5)
+              {
+                  StartGreenLine();
+              }
+
+         break;
+         default:
+              GreenAttempts = 0;
+         break;
+              
+     }
+     if((SENSOR_2 > 75) || (SENSOR_3 > 75))
+     {
+         downFloor = false;
+     }
+
+}    //TODO: Add Code for Greenline
+
+task main()
+{
+     InitSensors();
+     StartTiming();
+     GreenAttempts = 0;
+     downFloor = false;
+     while(downFloor)
+     {
+
+          HandleCounting(); //Ticks the smux delayer
+          CheckForLongSync();
+          SpeedLeft = Speednorm;
+          SpeedRight = Speednorm;
+          time = ReturnTime();
+          ClearScreen();
+          NumOut(0,LCD_LINE1,ReturnSensorTime());
+          NumOut(0, LCD_LINE2, SENSOR_2);
+          NumOut(0, LCD_LINE3, SENSOR_3);
+          NumOut(0, LCD_LINE4, GreenAttempts);
+          NumOut(0, LCD_LINE5, SENSOR_4);
+          if(ReadUltrasonic() > 0)
+          {
+          NumOut(0, LCD_LINE6, ReadUltrasonic());
+          }
+          
+          if(ReadFrontTouch())
+          {
+              TextOut(0, LCD_LINE6, "Touch");
+          }
+          
+          if(SENSOR_2 < Schwarzwert)
+          {
+              TurnRight();
+          }
+          if((SENSOR_3 < Schwarzwert) && (ReturnSensorTime() > stime))
+          {
+              TurnLeft();
+          }
+
+          if((time > 1000) && (ReturnSensorTime() > stime))
+          {
+              if(DirectionRight == true)
+              {
+                  SpeedLeft = 50;
+                  SpeedRight = 30;
+              }
+              else
+              {
+                  SpeedLeft = 30;
+                  SpeedRight = 50;
+              }
+          }
+          OnFwd(OUT_B, SpeedLeft);
+          OnFwd(OUT_C, SpeedRight);
+          Wait(20);
+          Off(OUT_BC);
+     }
+     //UpperFloor
+     ClearScreen();
+     while(true)
+     {
+         NumOut(0, LCD_LINE1, ReadBackLight());
+         OnFwd(OUT_BC, -30);
+         if((ReadUltrasonic() <= 35) && (ReadUltrasonic() != 0))
+         {
+          Wait(1000);
+         }
+         if(ReadBackLight() > 27)
+         {
+             Wait(1000);
+             Off(OUT_BC);
+             OnFwd(OUT_A, -100);
+             Wait(1000);
+             Off(OUT_A);
+         }
+     }
+     
+}
