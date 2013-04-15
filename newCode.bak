@@ -1,4 +1,4 @@
-/* Schwarze Linie Main */ //22.03.2013 // Philipp Auer
+/* Schwarze Linie Main */
 
 #include "NXCDefs.h"
 #include "HTSMUX-driver.h"
@@ -12,21 +12,29 @@ long sensorTime;
 byte count;
 byte SpeedLeft;
 byte SpeedRight;
-#define Speednorm 75
-#define Schwarzwert 53
 int GreenAttempts;
 bool downFloor;
+int Ultrasonicvalue;
+int err;
+long USTime;
 
-
-
-#define ramp 50
-#define stime 2000
-
+int x, y, z;
+int Pod1 = 0;
+int Pod2 = 0;
+int Pod3 = 0;
 int backtime = 800;
-int turntime = 500;
+int turntime = 800;
 int nigger = 0;
 int evadetime = 1500;
 int fortime = 3000;
+bool Dose = false;
+
+#define Speednorm 100
+#define Schwarzwert 53
+#define ramp 70
+#define stime 2000
+#define Silberwert2 70
+#define Silberwert3 65
 
 void StartTiming()
 {
@@ -36,17 +44,23 @@ void StartGreenLine()
 {
      sensorTime = CurrentTick();
 }
-
+void StartUS()
+{
+     USTime = CurrentTick();
+}
 long ReturnTime()
 {
      return (CurrentTick() - intzeroval);
 }
-
 long ReturnSensorTime()
 {
      return (CurrentTick() - sensorTime);
 }
 
+long ReturnUSTime()
+{
+      return (CurrentTick() - USTime);
+}
 void evadeLeft()
 {
       OnFwd(OUT_B, 100);
@@ -57,6 +71,32 @@ void evadeRight()
       OnRev(OUT_B, 100);
       OnFwd(OUT_C, 100);
 }
+void DoRotations(long degrees, char pwr, int iterations, int rl)
+{
+
+     for(int i = 0; i < iterations; i++)
+     {
+         RotateMotorEx(OUT_BC, -pwr, degrees, rl,true,true);
+
+     }
+}
+void LongLine()
+{
+     DoRotations(360, 100, 6,3);
+}
+
+void ShortLine()
+{
+    DoRotations(360, 100, 7,3);
+}
+void TurnRightUpper()
+{
+     DoRotations(400,100,1,70);
+}
+void MicroLine()
+{
+    DoRotations(360,100,1,3);
+}
 
 void asyncStartAvoidCollision()
 {
@@ -64,29 +104,29 @@ void asyncStartAvoidCollision()
       OnRev(OUT_BC, 80);
       Wait(backtime);
       Off(OUT_BC);
-      
+
       evadeLeft();
       Wait(turntime);
       Off(OUT_BC);
-      
+
       OnFwd(OUT_BC, 80);
       Wait(evadetime);
-      
+
       evadeRight();
       Wait(turntime);
-      
+
       OnFwd(OUT_BC, 80);
       Wait(fortime);
       Off(OUT_BC);
-      
+
       evadeRight();
       Wait(turntime);
       Off(OUT_BC);
-      
+
       OnFwd(OUT_BC, 80);
       Wait(evadetime-1000);
       ClearScreen();
-      while((SENSOR_2 > Schwarzwert) &&  (SENSOR_3 > Schwarzwert))
+      while((SENSOR_2 > Schwarzwert) && (SENSOR_3 > Schwarzwert))
       {
            OnFwd(OUT_BC, 80);
            Wait(1);
@@ -99,7 +139,7 @@ void asyncStartAvoidCollision()
 
 void TurnLeft()
 {
-     SpeedLeft = 100;
+     SpeedLeft = 80;
      SpeedRight = -100;
      DirectionRight = false;
      StartTiming();
@@ -108,7 +148,7 @@ void TurnLeft()
 void TurnRight()
 {
      SpeedLeft = -100;
-     SpeedRight = 100;
+     SpeedRight = 80;
      DirectionRight = true;
      StartTiming();
 }
@@ -128,11 +168,12 @@ void InitSensors()
         Wait(1000);
      }
      smuxSetSensorLegoLight(msensor_S1_3, true);
+     smuxSetSensorLegoLight(msensor_S1_1, true);
 }
 
 bool isAbleToCheck()
 {
-     TextOut(0, LCD_LINE3, "                ");
+     TextOut(0, LCD_LINE3, " ");
      NumOut(0, LCD_LINE3, count);
      if(count == 0)
      {
@@ -155,9 +196,12 @@ bool ReadAccel(int &x, int &y, int &z)
 {
      if(isAbleToCheck())
      {
+
           smuxReadSensorHTAccel(msensor_S1_2, x, y, z);
           return true;
+
      }
+
      return false;
 }
 
@@ -172,6 +216,7 @@ bool ReadFrontTouch()
 
 int ReadBackLight()
 {
+
      if(isAbleToCheck())
      {
           return smuxSensorLegoLightNorm(msensor_S1_3);
@@ -179,30 +224,57 @@ int ReadBackLight()
      return 0;
 }
 
-byte ReadUltrasonic()
+int ReadSideLight()
 {
+     if(isAbleToCheck())
+     {
+          return smuxSensorLegoLightNorm(msensor_S1_1);
+     }
+     return 0;
+}
+void ReadUltrasonic()
+{
+
     if(isAbleToCheck())
     {
-         return smuxSensorLegoUS(msensor_S1_1);
-    }
-    return 0;
-}
+        int temp = smuxSensorLegoUS(msensor_S1_1);
+        if(temp == 255)
+        {
+          Ultrasonicvalue = 0;
+        }
+        else
+        {
+            Ultrasonicvalue = temp;
+        }
 
+    }
+    else
+    {
+         Ultrasonicvalue = 0;
+    }
+
+}
+void driveRamp()
+{
+     OnFwdReg(OUT_BC, 100, 2);
+     Wait(10000);
+}
 void CheckForLongSync()
 {
      if(ReadFrontTouch())
      {
          asyncStartAvoidCollision();
      }
-     int x, y, z;
+
      if(ReadAccel(x, y, z))
      {
-         if(x > ramp)
+
+         if(x > ramp || x < -ramp)
          {
-              //Fuigas
+              driveRamp();
          }
      }
-     byte color = SENSOR_4;
+     int color = SENSOR_4;
      switch(color)
      {
          case 3:
@@ -218,20 +290,60 @@ void CheckForLongSync()
          default:
               GreenAttempts = 0;
          break;
-              
+
      }
      if((SENSOR_2 > 75) || (SENSOR_3 > 75))
      {
          downFloor = false;
      }
 
-}    //TODO: Add Code for Greenline
+} //TODO: Add Code for Greenline
+void Turn45()
+{
+     OnRev(OUT_B, 100);
+     OnFwd(OUT_C, 100);
+     Wait(turntime/2);
+     Off(OUT_BC);
+}
+long MiniLine()
+{
 
+     int counter = 0;
+     long averagevalue = 0;
+     StartUS();
+     while(ReturnUSTime() < 1200)
+     {
+          NumOut(0,LCD_LINE5,ReturnUSTime());
+          OnRevReg(OUT_BC,100,OUT_REGMODE_SYNC);
+          counter++;
+          averagevalue +=  ReadSideLight();
+     }
+     averagevalue = averagevalue/counter;
+     Off(OUT_BC);
+     return averagevalue;
+}
+bool CheckForDose()
+{
+   if(!Dose)
+   {
+         RotateMotor(OUT_A, -80, 180);
+         NumOut(0, LCD_LINE6, ReadBackLight());
+         if(ReadBackLight() > 60)
+         {
+             OnFwd(OUT_A, -100);
+             Wait(1000);
+             return true;
+         }
+         RotateMotor(OUT_A, 80, 180);
+         return false;
+   }
+}
 task main()
 {
      InitSensors();
      StartTiming();
      GreenAttempts = 0;
+     Ultrasonicvalue = 0;
      downFloor = false;
      while(downFloor)
      {
@@ -247,16 +359,19 @@ task main()
           NumOut(0, LCD_LINE3, SENSOR_3);
           NumOut(0, LCD_LINE4, GreenAttempts);
           NumOut(0, LCD_LINE5, SENSOR_4);
-          if(ReadUltrasonic() > 0)
+           NumOut(0,LCD_LINE7,x);
+          ReadUltrasonic();
+
+          if(Ultrasonicvalue > 0)
           {
-          NumOut(0, LCD_LINE6, ReadUltrasonic());
+          NumOut(0, LCD_LINE6, Ultrasonicvalue);
           }
-          
+
           if(ReadFrontTouch())
           {
               TextOut(0, LCD_LINE6, "Touch");
           }
-          
+
           if(SENSOR_2 < Schwarzwert)
           {
               TurnRight();
@@ -279,6 +394,39 @@ task main()
                   SpeedRight = 50;
               }
           }
+          // Wenn Silber -> Ausrichten
+          if(SENSOR_3 > Silberwert3)
+          {
+              while((SENSOR_3 < Silberwert3) || (SENSOR_2 < Silberwert2))
+              {
+                  if(SENSOR_3 < Silberwert3)
+                  {
+                      OnFwd(OUT_C, -30);
+                  }
+                  if(SENSOR_2 < Silberwert2)
+                  {
+                      OnFwd(OUT_B, 100);
+                  }
+              }
+              break;
+          }
+          if(SENSOR_2 > Silberwert2)
+          {
+              while((SENSOR_3 < Silberwert3) || (SENSOR_2 < Silberwert2))
+              {
+                  if(SENSOR_2 < Silberwert2)
+                  {
+                      OnFwd(OUT_B, -30);
+                  }
+                  if(SENSOR_3 < Silberwert3)
+                  {
+                      OnFwd(OUT_C, 100);
+                  }
+              }
+              break;
+          }
+          // Bis hier ausrichten
+          OnRev(OUT_A, 70);
           OnFwd(OUT_B, SpeedLeft);
           OnFwd(OUT_C, SpeedRight);
           Wait(20);
@@ -286,22 +434,31 @@ task main()
      }
      //UpperFloor
      ClearScreen();
+     byte status = 0;
+
      while(true)
      {
-         NumOut(0, LCD_LINE1, ReadBackLight());
-         OnFwd(OUT_BC, -30);
-         if((ReadUltrasonic() <= 35) && (ReadUltrasonic() != 0))
-         {
-          Wait(1000);
-         }
-         if(ReadBackLight() > 27)
-         {
-             Wait(1000);
-             Off(OUT_BC);
-             OnFwd(OUT_A, -100);
-             Wait(1000);
-             Off(OUT_A);
-         }
+         LongLine();
+         Dose = CheckForDose();
+         TurnRightUpper();
+         Dose =  CheckForDose();
+         int val = MiniLine();
+         Dose =  CheckForDose();
+         NumOut(0,LCD_LINE1,val);
+         TurnRightUpper();
+         Dose =  CheckForDose();
+         MicroLine();
+         Dose =  CheckForDose();
+         TurnRightUpper();
+         Dose =  CheckForDose();
+         val = MiniLine();
+         Dose =  CheckForDose();
+         NumOut(0,LCD_LINE2,val);
+         TurnRightUpper();
+         Dose = CheckForDose();
+         LongLine();
+         Wait(50000000);
      }
-     
+
+
 }
