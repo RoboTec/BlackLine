@@ -1,3 +1,5 @@
+/* Schwarze Linie */  // Stefan 16.04.2013
+
 #include "NXCDefs.h"
 #include "HTSMUX-driver.h"
 
@@ -64,8 +66,8 @@ void HandleCounting()
 }
 bool isAbleToCheck()
 {
-     TextOut(0, LCD_LINE3, " ");
-     NumOut(0, LCD_LINE3, count);
+     TextOut(0, LCD_LINE2, " ");
+     NumOut(0, LCD_LINE2, count);
      if(count == 0)
      {
           return true;
@@ -139,7 +141,7 @@ bool ReadAccel(int &x, int &y, int &z)
 }
 void driveRamp()
 {
-     OnFwdReg(OUT_BC, 100, 2);
+     OnFwdReg(OUT_BC, 100, 2);                                        //mit DoRotations?
      Wait(10000);
 }
 void StartGreenLine()
@@ -271,7 +273,7 @@ void TurnRightUpper()
 bool CheckForDose()
 {
      RotateMotor(OUT_A, -80, 180);
-     NumOut(0, LCD_LINE6, ReadBackLight());
+     NumOut(0, LCD_LINE3, ReadBackLight());
      if(ReadBackLight() > 60)
      {
                      OnFwd(OUT_A, -100);
@@ -349,8 +351,8 @@ task main()
      }
      while(DownFloor == false)
      {
-                     //umdrehen nicht vergessen!!
-                     //Greifarm öffnen!!
+                                                                      //umdrehen nicht vergessen!!
+                                                                      //Greifarm öffnen!!
                      LongLine();
                      CheckForDose();
                      TurnRightUpper();
@@ -364,7 +366,14 @@ task main()
                      val = MiniLine();
                      NumOut(0,LCD_LINE1,val);
                      CheckForDose();
-                     Wait(50000000);
-                     //nicht fertig
+                     TurnRightUpper();
+                     LongLine();
+                     CheckForDose();
+                     TurnRightUpper();
+                     val = MiniLine();
+                     NumOut(0,LCD_LINE1,val);
+                     CheckForDose();
+                     TurnRightUpper();
+                     Wait(5000000000);                                //nicht fertig
      }
 }
