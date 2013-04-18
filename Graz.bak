@@ -1,0 +1,77 @@
+/* Schwarze Linie */ // Stefan 16.04.2013
+
+#include "linefunctions.h"
+
+task main()
+{
+     InitSensors();
+     StartTiming();
+     GreenAttempts = 0;
+     DownFloor = true;
+     while(DownFloor)
+     {
+                     HandleCounting();
+                     CheckForLongSync();
+                     SpeedLeft = Speednorm;
+                     SpeedRight = Speednorm;
+                     time = ReturnTime();
+                     if(SENSOR_2 < Schwarzwert)
+                     {
+                              TurnRight();
+                     }
+                     if((SENSOR_3 < Schwarzwert) && (ReturnSensorTime() > stime))
+                     {
+                              TurnLeft();
+                     }
+                     if((time > 1500) && (ReturnSensorTime() > stime))
+                     {
+                              if(DirectionRight == true)
+                              {
+                                  SpeedLeft = 50;
+                                  SpeedRight = 30;
+                              }
+                              else
+                              {
+                                  SpeedLeft = 30;
+                                  SpeedRight = 50;
+                              }
+                     }
+                     if(DownFloor == false)
+                     {
+                              Align();
+                     }
+                     OnRev(OUT_A, 70);
+                     OnFwd(OUT_B, SpeedLeft);
+                     OnFwd(OUT_C, SpeedRight);
+                     Wait(20);
+                     Off(OUT_BC);
+     }
+     while(DownFloor == false)
+     {
+                                                                      //umdrehen nicht vergessen!!
+                                                                      //Greifarm öffnen!!
+                     LongLine1();
+                     Dose = CheckForDose();
+                     TurnRight45();
+                     int val = MiniLine();
+                     NumOut(0,LCD_LINE1,val);
+                     Dose = CheckForDose();
+                     TurnRight45();
+                     MicroLine();
+                     Dose = CheckForDose();
+                     TurnRight45();
+                     val = MiniLine();
+                     NumOut(0,LCD_LINE1,val);
+                     Dose = CheckForDose();
+                     TurnRight45();
+                     LongLine2();
+                     Dose = CheckForDose();
+                     TurnRight45();
+                     val = MiniLine();
+                     NumOut(0,LCD_LINE1,val);
+                     Dose = CheckForDose();
+                     TurnRight45();
+                     MicroLine();
+                     Wait(5000000000); //nicht fertig
+     }
+}
