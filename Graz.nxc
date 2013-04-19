@@ -46,32 +46,58 @@ task main()
                      Wait(20);
                      Off(OUT_BC);
      }
-     while(DownFloor == false)
+     while(true)
      {
-                                                                      //umdrehen nicht vergessen!!
-                                                                      //Greifarm öffnen!!
-                     LongLine1();
-                     Dose = CheckForDose();
-                     TurnRight45();
-                     int val = MiniLine();
-                     NumOut(0,LCD_LINE1,val);
-                     Dose = CheckForDose();
-                     TurnRight45();
-                     MicroLine();
-                     Dose = CheckForDose();
-                     TurnRight45();
-                     val = MiniLine();
-                     NumOut(0,LCD_LINE1,val);
-                     Dose = CheckForDose();
-                     TurnRight45();
-                     LongLine2();
-                     Dose = CheckForDose();
-                     TurnRight45();
-                     val = MiniLine();
-                     NumOut(0,LCD_LINE1,val);
-                     Dose = CheckForDose();
-                     TurnRight45();
-                     MicroLine();
-                     Wait(5000000000); //nicht fertig
+     UpperFloor:
+     if(Fail)
+     {
+          Wait(10000);
+     }
+     OnRev(OUT_A, 70);
+     MicroLine();
+     DoRotations(360,-100,1,-100);
+     OnFwd(OUT_A,70);
+     Wait(500);
+     Off(OUT_A);                       // bis hier überprüfen
+     LongLine1();
+     if(!Dose)
+     {
+         goto UpperFloor;
+     }
+     Dose = CheckForDose();
+     TurnRight45();
+     if(MiniLine() <= AveragePodVal)
+     {
+         PutDownCan();
+         break;
+     }
+                     //position = 1;
+     NumOut(0,LCD_LINE1,position);
+     Dose = CheckForDose();
+     TurnRight45();
+     MicroLine();
+     Dose = CheckForDose();
+     TurnRight45();
+     if(MiniLine() <= AveragePodVal)
+     {
+          PutDownCan();
+          break;
+     }
+     NumOut(0,LCD_LINE1,position);
+     Dose = CheckForDose();
+     TurnRight45();
+     LongLine2();
+     Dose = CheckForDose();
+     TurnRight45();
+     if(MiniLine() <= AveragePodVal)
+     {
+         PutDownCan();
+         break;
+     }
+     NumOut(0,LCD_LINE1,position);
+     Dose = CheckForDose();
+     TurnRight45();
+     MicroLine();
+     Wait(5000000000); //nicht fertig
      }
 }

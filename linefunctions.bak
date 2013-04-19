@@ -6,12 +6,11 @@
 #define Silberwert3 61
 #define Dosenwert 50
 #define ramp 70
+#define Speednorm 65
 #define stime 2000
 #define LongTime 5000
-#define AveragePodVal
 
 //Variablen
-int Speednorm = 65;
 int position;
 int tempposition = 0;
 long intzeroval;
@@ -27,9 +26,7 @@ int x, y, z;
 long SLTime;
 long LLTime;
 bool Dose;
-bool Rampe = false;
 byte Ultrasonicvalue;
-bool Fail;
 
 //Funktionen
 void InitSensors()
@@ -71,7 +68,7 @@ long ReturnLLTime()
 }
 void HandleCounting()
 {
-     count++;
+     ++count;
      if(count >= 50)
      {
          count = 0;
@@ -163,15 +160,10 @@ void CheckForLongSync()
      if(ReadAccel(x, y, z))
      {
 
-         if(x > ramp)
+         if(x > ramp || x < -ramp)
          {
-              Rampe=true;
-			  Speednorm = 90;
-		 }
-		 if(x < ramp)
-		 {
-			  Speednorm = 65;
-		 }
+              //driveRamp();
+         }
      }
      int color = SENSOR_4;
      switch(color)
@@ -190,7 +182,7 @@ void CheckForLongSync()
               GreenAttempts = 0;
          break;
      }
-     if((SENSOR_2 > Silberwert2) || (SENSOR_3 > Silberwert3) && Rampe == true)
+     if((SENSOR_2 > Silberwert2) || (SENSOR_3 > Silberwert3))
      {
          DownFloor = false;
      }
@@ -294,31 +286,6 @@ bool CheckForDose()
      }
      return true;
 }
-void MicroLine()
-{
-    DoRotations(360,100,1,3);
-}
-void MinusMicroLine()
-{
-	DoRotations(360,-100,1,3);
-}
-void PutDownCan()
-{
-	  OnFwdReg(OUT_BC,100,OUT_REGMODE_SYNC);
-	  Wait(600);
-	  TurnLeft45();
-	  TurnLeft45();
-	  Off(OUT_BC);
-	  OnRevReg(OUT_BC,30,OUT_REGMODE_SYNC);
-	  Wait(1000);
-	  Off(OUT_BC);
-	  OnFwd(OUT_A,30);
-	  Wait(1000);
-	  Off(OUT_A);
-	  Wait(5000);
-	  OnRevReg(OUT_BC,30,OUT_REGMODE_SYNC);
-	  Wait(1000);
-}
 void LongLine1()
 {
 	//DoRotations(2160, 100, 1,2);
@@ -353,26 +320,7 @@ void LongLine1()
 				Wait(700);
 				Off(OUT_BC);
 			}
-			int i = 0;
-			while(!Dose)
-			{
-				MicroLine();
-				Dose = CheckForDose();
-				i++;
-			}
-			for(int b = 0;b<=i;b++)
-			{
-				MinusMicroLine();
-			}
-			OnRev(OUT_BC,50);
-			Wait(3500);
-			Off(OUT_BC);
 		}
-		if(!Dose)
-		{
-			Fail = true;
-		}
-	}
 }
 void LongLine2()
 {
@@ -393,4 +341,8 @@ long MiniLine()
      averagevalue = averagevalue/counter;
      Off(OUT_BC);
      return averagevalue;
+}
+void MicroLine()
+{
+    DoRotations(360,100,1,3);
 }
