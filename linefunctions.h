@@ -1,7 +1,7 @@
 #include "NXCDefs.h"
 #include "HTSMUX-driver.h"
 
-#define Schwarzwert 53
+#define Schwarzwert 45
 #define Silberwert2 70
 #define Silberwert3 61
 #define Dosenwert 50
@@ -11,7 +11,7 @@
 #define AveragePodVal
 
 //Variablen
-int Speednorm = 65;
+int Speednorm = 50;
 int position;
 int tempposition = 0;
 long intzeroval;
@@ -37,8 +37,8 @@ void InitSensors()
      SetSensorLight(IN_3);
      SetSensorLight(IN_2);
      SetSensorLowspeed(IN_1);
-     //SetSensorColorFull(IN_4);
-	 SetSensorUltrasonic(IN_4);
+     SetSensorColorFull(IN_4);
+	 //SetSensorUltrasonic(IN_4);
      //SetSensor(S4, SENSOR_TOUCH);
      //Sensor Testen...
      if (!HTSMUXscanPorts(S1))
@@ -112,28 +112,27 @@ void TurnLeft45()
 }
 void TurnRightDown45()
 {
-     DoRotations(400,-100,1,74);
+     DoRotations(400,-100,1,100);
 }
 void TurnLeftDown45()
 {
-     DoRotations(400,-100,1,-74);
+     DoRotations(300,-100,1,-100);
 }
 
 void AvoidCollision()
 {
-      TurnLeftDown45();
-	  DoRotations(720, -40, 1,2);
-	  TurnRightDown45();
-	  DoRotations(840, -40, 1,2);
-	  TurnRightDown45();
-      while((SENSOR_2 > Schwarzwert) && (SENSOR_3 > Schwarzwert))
-      {
-           OnFwd(OUT_BC, 40);
-           Wait(1);
-      }
-      Wait(200);
-      TurnLeftDown45();
-      Off(OUT_BC);
+      TurnRightDown45();
+	  DoRotations(650, -40, 1,2);
+	  TurnLeftDown45();
+	  DoRotations(650, -40, 1,2);
+	  TurnLeftDown45();
+	  //DoRotations(400, -40, 1,2);
+	  //TurnRightDown45();
+      while(SENSOR_2 > Schwarzwert)
+	  {
+		  OnFwd(OUT_BC, 40);
+	  }
+	  Off(OUT_BC);
 }
 bool ReadAccel(int &x, int &y, int &z)
 {
@@ -146,8 +145,15 @@ bool ReadAccel(int &x, int &y, int &z)
 }
 void driveRamp()
 {
-     //OnFwdReg(OUT_BC, 100, 2); //mit DoRotations?
-     //Wait(10000);
+     if(x > ramp)
+         {
+              Rampe=true;
+			  Speednorm = 90;
+		 }
+		 if(x < ramp)
+		 {
+			  Speednorm = 50;
+		 }
 }
 void StartGreenLine()
 {
@@ -162,16 +168,7 @@ void CheckForLongSync()
 
      if(ReadAccel(x, y, z))
      {
-
-         if(x > ramp)
-         {
-              Rampe=true;
-			  Speednorm = 90;
-		 }
-		 if(x < ramp)
-		 {
-			  Speednorm = 65;
-		 }
+		 driveRamp();
      }
      int color = SENSOR_4;
      switch(color)
