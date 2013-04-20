@@ -50,10 +50,10 @@ task main()
      {
      while(true)
      {
-     ClearScreen();
+     /*ClearScreen();
      int vall = MiniLine();
      NumOut(0, LCD_LINE1,vall);
-     Wait(5000); /*
+     Wait(5000); */
      ClearScreen();
      PodPosition=0;
      OnRev(OUT_A, 70);
@@ -105,7 +105,7 @@ task main()
      Dose = CheckForDose();
      TurnRight45();
      MicroLine();
-     Wait(5000000000); //nicht fertig   */
+     Wait(5000000000); //nicht fertig
      }
      if(!Fail)
      {
