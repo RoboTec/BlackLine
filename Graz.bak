@@ -7,7 +7,7 @@ task main()
      InitSensors();
      StartTiming();
      GreenAttempts = 0;
-     DownFloor = true;
+     DownFloor = false;
      while(DownFloor)
      {
                      HandleCounting();
@@ -23,7 +23,7 @@ task main()
                      {
                               TurnLeft();
                      }
-                     if((time > 1500) && (ReturnSensorTime() > stime))
+                     if((time > 1500) && (ReturnSensorTime() > stime) && Rampe == false)
                      {
                               if(DirectionRight == true)
                               {
@@ -48,47 +48,68 @@ task main()
      }
      while(true)
      {
+     while(true)
+     {
+     /*ClearScreen();
+     int vall = MiniLine();
+     NumOut(0, LCD_LINE1,vall);
+     Wait(5000); */
+     ClearScreen();
+     PodPosition=0;
      OnRev(OUT_A, 70);
-     MicroLine();
-     DoRotations(360,-100,1,-100);
+     StartUpper();
+     DoRotations(840,-40,1,-100);
      OnFwd(OUT_A,70);
-     Wait(500);
+     Wait(600);
      Off(OUT_A);                       // bis hier überprüfen
-     LongLine1();
-     Dose = CheckForDose();
-     TurnRight45();
-     if(MiniLine() <= AveragePodVal)
-     {
-         PutDownCan();
-         break;
-     }
-                     //position = 1;
-     NumOut(0,LCD_LINE1,position);
-     Dose = CheckForDose();
-     TurnRight45();
-     MicroLine();
-     Dose = CheckForDose();
-     TurnRight45();
-     if(MiniLine() <= AveragePodVal)
-     {
-          PutDownCan();
-          break;
-     }
-     NumOut(0,LCD_LINE1,position);
-     Dose = CheckForDose();
-     TurnRight45();
      LongLine2();
      Dose = CheckForDose();
      TurnRight45();
-     if(MiniLine() <= AveragePodVal)
+     tempval = MiniLine();
+     if(tempval <= AveragePodVal)
      {
-         PutDownCan();
-         break;
+         PodPosition = 1;
      }
-     NumOut(0,LCD_LINE1,position);
+     ClearScreen();
+     NumOut(0,LCD_LINE1,PodPosition);
+     NumOut(0,LCD_LINE2,tempval);
+     Wait(1000);
      Dose = CheckForDose();
      TurnRight45();
      MicroLine();
-     Wait(5000000000); //nicht fertig
+     Dose = CheckForDose();
+     TurnRight45();
+     tempval = MiniLine();
+     if(tempval <= AveragePodVal)
+     {
+          PodPosition = 2;
+     }
+     ClearScreen();
+     NumOut(0,LCD_LINE1,PodPosition);
+     NumOut(0,LCD_LINE2,tempval);
+     Wait(1000);
+     Dose = CheckForDose();
+     TurnRight45();
+     DoRotations(1300, 100, 1,2);
+     Dose = CheckForDose();
+     TurnRight45();
+          tempval = MiniLine();
+     if(tempval <= AveragePodVal)
+     {
+          PodPosition = 2;
+     }
+          ClearScreen();
+      NumOut(0,LCD_LINE1,PodPosition);
+     NumOut(0,LCD_LINE2,tempval);
+     Wait(1000);
+     Dose = CheckForDose();
+     TurnRight45();
+     MicroLine();
+     Wait(5000000000); //nicht fertig   */
+     }
+     if(!Fail)
+     {
+         break;
+     }
      }
 }
