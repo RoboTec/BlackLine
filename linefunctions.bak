@@ -1,17 +1,22 @@
 #include "NXCDefs.h"
 #include "HTSMUX-driver.h"
 
-#define Schwarzwert 53
-#define Silberwert2 70
-#define Silberwert3 61
-#define Dosenwert 50
-#define ramp 70
-#define Speednorm 65
+#define Schwarzwert2 50
+#define Schwarzwert3 55
+#define Silberwert2 65
+#define Silberwert3 65				//Werte überprüfen!!
+#define Dosenwert 45
+#define ramp 60
 #define stime 2000
 #define LongTime 5000
+#define AveragePodVal 33
+#define blackconst 1
 
 //Variablen
-int position;
+int tempval;
+bool finrampe = false;
+int Speednorm = 60;
+int PodPosition;
 int tempposition = 0;
 long intzeroval;
 int GreenAttempts;
@@ -22,11 +27,18 @@ byte SpeedLeft;
 byte SpeedRight;
 int time;
 bool DirectionRight;
+int oben = false;
 int x, y, z;
 long SLTime;
 long LLTime;
 bool Dose;
+bool Rampe = false;
 byte Ultrasonicvalue;
+bool Fail;
+int blackiterations;
+bool isInTurn;
+int LeftCounter = 0;
+int RightCounter = 0;
 
 //Funktionen
 void InitSensors()
@@ -35,7 +47,8 @@ void InitSensors()
      SetSensorLight(IN_2);
      SetSensorLowspeed(IN_1);
      //SetSensorColorFull(IN_4);
-	 SetSensorUltrasonic(IN_4);
+	 //
+	 SetSensorLowspeed(IN_4);
      //SetSensor(S4, SENSOR_TOUCH);
      //Sensor Testen...
      if (!HTSMUXscanPorts(S1))
@@ -45,6 +58,7 @@ void InitSensors()
         Wait(1000);
      }
      smuxSetSensorLegoLight(msensor_S1_3, true);
+	 smuxSetSensorLegoLight(msensor_S1_1, true);
 }
 void StartTiming()
 {
@@ -68,7 +82,7 @@ long ReturnLLTime()
 }
 void HandleCounting()
 {
-     ++count;
+     count++;
      if(count >= 50)
      {
          count = 0;
@@ -101,7 +115,7 @@ void DoRotations(long degrees, char pwr, int iterations, int rl)
 }
 void TurnRight45()
 {
-     DoRotations(400,100,1,74);
+     DoRotations(360,100,1,74);
 }
 void TurnLeft45()
 {
@@ -109,28 +123,28 @@ void TurnLeft45()
 }
 void TurnRightDown45()
 {
-     DoRotations(400,-100,1,74);
+     DoRotations(400,-100,1,100);
 }
 void TurnLeftDown45()
 {
-     DoRotations(400,-100,1,-74);
+     DoRotations(320,-100,1,-100);
 }
 
 void AvoidCollision()
 {
-      TurnLeftDown45();
-	  DoRotations(720, -40, 1,2);
+      DoRotations(360,40,1,-2);
 	  TurnRightDown45();
-	  DoRotations(840, -40, 1,2);
-	  TurnRightDown45();
-      while((SENSOR_2 > Schwarzwert) && (SENSOR_3 > Schwarzwert))
-      {
-           OnFwd(OUT_BC, 40);
-           Wait(1);
-      }
-      Wait(200);
-      TurnLeftDown45();
-      Off(OUT_BC);
+	  DoRotations(650, -40, 1,2);
+	  TurnLeftDown45();
+	  DoRotations(700, -40, 1,2);
+	  TurnLeftDown45();
+	  DoRotations(200, -40, 1,2);
+	  //TurnRightDown45();
+      while(SENSOR_2 > Schwarzwert)
+	  {
+		  OnFwd(OUT_BC, 40);
+	  }
+	  Off(OUT_BC);
 }
 bool ReadAccel(int &x, int &y, int &z)
 {
@@ -143,8 +157,22 @@ bool ReadAccel(int &x, int &y, int &z)
 }
 void driveRamp()
 {
-     //OnFwdReg(OUT_BC, 100, 2); //mit DoRotations?
-     //Wait(10000);
+     if(x > ramp)
+         {
+              Rampe=true;
+			  Speednorm = 100;
+			  finrampe=true;
+		 }
+	 else if(x < -ramp)
+	 {
+			Rampe=true;
+			  Speednorm = 20;
+	 }
+	 else
+		 {
+			  Rampe = false;
+			  Speednorm = 60;
+		 }
 }
 void StartGreenLine()
 {
@@ -159,11 +187,9 @@ void CheckForLongSync()
 
      if(ReadAccel(x, y, z))
      {
-
-         if(x > ramp || x < -ramp)
-         {
-              //driveRamp();
-         }
+		 NumOut(0,LCD_LINE4,Speednorm);
+		 NumOut(0,LCD_LINE5,x);
+		 driveRamp();
      }
      int color = SENSOR_4;
      switch(color)
@@ -182,7 +208,7 @@ void CheckForLongSync()
               GreenAttempts = 0;
          break;
      }
-     if((SENSOR_2 > Silberwert2) || (SENSOR_3 > Silberwert3))
+     if((SENSOR_2 > Silberwert2) || (SENSOR_3 > Silberwert3) && finrampe == true)
      {
          DownFloor = false;
      }
@@ -193,15 +219,33 @@ long ReturnTime()
 }
 void TurnRight()
 {
-     SpeedLeft = -100;
-     SpeedRight = 70;
-     DirectionRight = true;
+	 isInTurn = true;
+     if(Rampe)
+	 {
+		SpeedLeft = 0;
+		SpeedRight = 100;
+	 }
+	 else
+	 {
+		SpeedLeft = -70;
+		SpeedRight = 100;
+	 }
+	 DirectionRight = true;
      StartTiming();
 }
 void TurnLeft()
 {
-     SpeedLeft = 70;
-     SpeedRight = -100;
+	 isInTurn = true;
+     if(Rampe)
+	 {
+		SpeedLeft = 50;
+		SpeedRight = 0;
+	 }
+	 else
+	 {
+		SpeedLeft = 100;
+		SpeedRight = -70;
+	 }
      DirectionRight = false;
      StartTiming();
 }
@@ -251,40 +295,66 @@ void Align()
 }
 int ReadBackLight()
 {
-     if(isAbleToCheck())
-     {
-          return smuxSensorLegoLightNorm(msensor_S1_3);
-     }
-     return 0;
+     return smuxSensorLegoLightNorm(msensor_S1_3);
 }
 int ReadSideLight()
 {
-     if(isAbleToCheck())
-     {
+
           return smuxSensorLegoLightNorm(msensor_S1_1);
-     }
-     return 0;
+
 }
 void ReadUltrasonic()
 {
-    Ultrasonicvalue = SENSOR_4;
+    Ultrasonicvalue = SensorUS(IN_4);
 }
 bool CheckForDose()
 {
      if(!Dose)
      {
-              RotateMotor(OUT_A, -80, 180);
+              RotateMotor(OUT_A, -100, 180);
+			  //RotateMotor(OUT_A, 80, 190);
+			  //OnFwd(OUT_BC, 50);
+			  //Wait(5);
               NumOut(0, LCD_LINE3, ReadBackLight());
-              if(ReadBackLight() < Dosenwert)
+              if(ReadBackLight() > Dosenwert)
               {
                      OnFwd(OUT_A, -100);
                      Wait(1000);
                      return true;
               }
-              RotateMotor(OUT_A, 80, 180);
+              RotateMotor(OUT_A, 100, 180);
               return false;
      }
      return true;
+}
+void MicroLine()
+{
+    DoRotations(360,100,1,2);
+}
+void StartUpper()
+{
+	DoRotations(1200,-40,1,10);
+}
+void MinusMicroLine()
+{
+	DoRotations(360,-100,1,-2);
+}
+void PutDownCan()
+{
+	  OnFwdReg(OUT_BC,100,OUT_REGMODE_SYNC);
+	  Wait(600);
+	  TurnLeft45();
+	  TurnLeft45();
+	  Off(OUT_BC);
+	  OnRevReg(OUT_BC,30,OUT_REGMODE_SYNC);
+	  Wait(1000);
+	  Off(OUT_BC);
+	  OnFwd(OUT_A,30);
+	  Wait(1000);
+	  Off(OUT_A);
+	  Wait(5000);
+	  OnRevReg(OUT_BC,30,OUT_REGMODE_SYNC);
+	  Wait(1000);
 }
 void LongLine1()
 {
@@ -292,35 +362,56 @@ void LongLine1()
 	StartLL();
 	while(ReturnLLTime() < LongTime)											//LongTime abstimmen!!
 	{	
-		OnRevReg(OUT_BC,70,OUT_REGMODE_SYNC);
+		OnRev(OUT_B,60);
+		OnRev(OUT_C,57);
 		ReadUltrasonic();
+		NumOut(0,LCD_LINE6,Ultrasonicvalue);
 		if((Ultrasonicvalue <= 35) && (Ultrasonicvalue != 0))
 		{
 			Off(OUT_ABC);
 			OnFwd(OUT_BC,50);
-			Wait(3500);
+			Wait(2500);
 			if(Ultrasonicvalue <= 10)
 			{
 				OnFwd(OUT_C,50);
-				OnRev(OUT_B,50);
+				OnRev(OUT_B,40);
 				Wait(300);
 				Off(OUT_BC);
 			}
 			if((Ultrasonicvalue > 10) && (Ultrasonicvalue <= 20))
 			{
 				OnFwd(OUT_C,50);
-				OnRev(OUT_B,50);
+				OnRev(OUT_B,40);
 				Wait(500);
 				Off(OUT_BC);
 			}
 			if(Ultrasonicvalue > 20)
 			{
 				OnFwd(OUT_C,50);
-				OnRev(OUT_B,50);
+				OnRev(OUT_B,40);
 				Wait(700);
 				Off(OUT_BC);
 			}
+			int i = 0;
+			while(!Dose)
+			{
+				MicroLine();
+				Dose = CheckForDose();
+				i++;
+			}
+			for(int b = 0;b<i;b++)
+			{
+				MinusMicroLine();
+			}
+			OnRev(OUT_BC,50);
+			Wait(3500);
+			Off(OUT_BC);
 		}
+		if(!Dose)
+		{
+			Fail = true;
+		}
+	}
 }
 void LongLine2()
 {
@@ -341,8 +432,4 @@ long MiniLine()
      averagevalue = averagevalue/counter;
      Off(OUT_BC);
      return averagevalue;
-}
-void MicroLine()
-{
-    DoRotations(360,100,1,3);
 }

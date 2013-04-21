@@ -7,63 +7,82 @@ task main()
      InitSensors();
      StartTiming();
      GreenAttempts = 0;
-     DownFloor = false;
+     DownFloor = true;
      while(DownFloor)
      {
                      HandleCounting();
                      CheckForLongSync();
-                     SpeedLeft = Speednorm;
-                     SpeedRight = Speednorm;
+                     if(SENSOR_4 == 1)
+                     {
+                         isInTurn = false;
+                     }
+
+                     /*if(blackiterations == 0)
+                     {
+                         isinTurn = false;
+                     }*/
+
+                     if(isInTurn == false)
+                     {
+                        SpeedLeft = Speednorm;
+                        SpeedRight = Speednorm;
+                     }
+
                      time = ReturnTime();
-                     if(SENSOR_2 < Schwarzwert)
+                     if(SENSOR_2 < Schwarzwert2)
                      {
                               TurnRight();
+                              blackiterations += blackconst;
                      }
-                     if((SENSOR_3 < Schwarzwert) && (ReturnSensorTime() > stime))
+                     if((SENSOR_3 < Schwarzwert3) && (ReturnSensorTime() > stime))
                      {
                               TurnLeft();
+                              blackiterations += blackconst;
                      }
-                     if((time > 1500) && (ReturnSensorTime() > stime) && Rampe == false)
+                     /*if((time > 1500) && (ReturnSensorTime() > stime) && Rampe == false)
                      {
-                              if(DirectionRight == true)
+                              if(DirectionRight == false)
                               {
-                                  SpeedLeft = 50;
+                                  SpeedLeft = 75;
                                   SpeedRight = 30;
                               }
                               else
                               {
                                   SpeedLeft = 30;
-                                  SpeedRight = 50;
+                                  SpeedRight = 75;
                               }
                      }
                      if(DownFloor == false)
                      {
                               Align();
-                     }
+                     } */
                      OnRev(OUT_A, 70);
                      OnFwd(OUT_B, SpeedLeft);
                      OnFwd(OUT_C, SpeedRight);
                      Wait(20);
                      Off(OUT_BC);
      }
-     while(true)
+     /*while(!DownFloor)
      {
-     while(true)
+     while(!DownFloor)
      {
      ClearScreen();
      int vall = MiniLine();
      NumOut(0, LCD_LINE1,vall);
-     Wait(5000); /*
+     Wait(5000);
      ClearScreen();
      PodPosition=0;
      OnRev(OUT_A, 70);
      StartUpper();
-     DoRotations(840,-40,1,-100);
+     DoRotations(1300,-40,1,-100);
      OnFwd(OUT_A,70);
      Wait(600);
      Off(OUT_A);                       // bis hier überprüfen
-     LongLine2();
+     LongLine1();
      Dose = CheckForDose();
+     Wait(10000);
+     if(Dose == false)
+     {break;}
      TurnRight45();
      tempval = MiniLine();
      if(tempval <= AveragePodVal)
@@ -105,11 +124,12 @@ task main()
      Dose = CheckForDose();
      TurnRight45();
      MicroLine();
-     Wait(5000000000); //nicht fertig   */
+     Wait(5000000000); //nicht fertig
      }
-     if(!Fail)
+     if(Dose)
      {
          break;
      }
-     }
+     }*/
+
 }
